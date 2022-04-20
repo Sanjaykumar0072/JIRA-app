@@ -14,6 +14,15 @@ let toolBoxColors = document.querySelectorAll(".color");
 
 let ticketArr = [];
 
+if(localStorage.getItem('tickets')){
+    ticketArrStr = localStorage.getItem('tickets');
+    ticketArr = JSON.parse(ticketArrStr);
+    for(let i=0;i<ticketArr.length;i++){
+        let ticketObj = ticketArr[i];
+        createTicket(ticketObj.color,ticketObj.task,ticketObj.id);
+    } 
+}
+
 for(let i=0;i<toolBoxColors.length;i++){
     toolBoxColors[i].addEventListener("click",function(){
         let currentColor = toolBoxColors[i].classList[1];
@@ -29,6 +38,17 @@ for(let i=0;i<toolBoxColors.length;i++){
             let task = filteredArr[j].task;
             let id = filteredArr[j].id;
             createTicket(color,task,id);
+        }
+    })
+
+    toolBoxColors[i].addEventListener('dblclick',function(){
+        let allTickets = document.querySelectorAll(".ticket-cont");
+        for(let i=0;i<allTickets.length;i++){
+           allTickets[i].remove();
+        }
+        for(let j=0;j<ticketArr.length;j++){
+            let ticketObj = ticketArr[j];
+            createTicket(ticketObj.color,ticketObj.task,ticketObj.id);
         }
     })
 }
@@ -86,11 +106,13 @@ function createTicket(ticketColor,task,ticketId){
                             <div class="task-area">${task}</div>
                             <div class="ticket-lock"><i class="fa fa-lock"></i></div>`;    
     mainCont.appendChild(ticketCont);
-    handleRemoval(ticketCont);
-    handleColor(ticketCont);
-    handleLock(ticketCont);
+    handleRemoval(ticketCont,id);
+    handleColor(ticketCont,id);
+    handleLock(ticketCont,id);
     if(!ticketId){
         ticketArr.push({"color":ticketColor,"task":task,"id":id});
+        let ticketArrStr = JSON.stringify(ticketArr);
+        localStorage.setItem('tickets',ticketArrStr);
     }
 }
 
@@ -102,42 +124,58 @@ removeBtn.addEventListener("click",function(){
     }
     removeFlag = !removeFlag;
 })
-function handleRemoval(ticket){
+function handleRemoval(ticket,id){
     ticket.addEventListener("click",function(){
         if(removeFlag){
+            let idx = getTicketIdx(id);
+            ticketArr.splice(idx,1);
+            let ticketArrStr = JSON.stringify(ticketArr);
+            localStorage.setItem('tickets',ticketArrStr);
             ticket.remove();
         }
     })
 }
 
-function handleColor(ticket) {
+function handleColor(ticket,id) {
     let ticketColorBand = ticket.querySelector('.ticket-color');
     ticketColorBand.addEventListener('click',function(){
         let currentTicketColor = ticketColorBand.classList[1];
         let currentTicketColorIdx = colors.findIndex(function(color){
             return currentTicketColor === color;
         })
-
+        let ticketIdx = getTicketIdx(id);
         newIdx = (currentTicketColorIdx + 1) % colors.length;
         newColor = colors[newIdx];
         ticketColorBand.classList.remove(currentTicketColor);
         ticketColorBand.classList.add(newColor);
+        ticketArr[ticketIdx].color = newColor;
+        localStorage.setItem('tickets',JSON.stringify(ticketArr));
     })
 }
 
-function handleLock(ticket) {
-    let ticketLock = document.querySelector(".ticket-lock i");
-    let ticketTaskArea = document.querySelector(".task-area");
-    ticketLock.addEventListener('click',function(){
+function handleLock(ticket,id){
+    let ticketLock = ticket.querySelector(".ticket-lock i");
+    let ticketTaskArea = ticket.querySelector('.task-area');
+    ticketLock.addEventListener("click",function(){
+        let ticketIdx = getTicketIdx(id);
         if(ticketLock.classList.contains('fa-lock')){
             ticketLock.classList.remove('fa-lock');
             ticketLock.classList.add('fa-unlock');
-            ticketTaskArea.setAttribute('contenteditable','true'); 
+            ticketTaskArea.setAttribute('contenteditable','true');
         }else{
             ticketLock.classList.remove('fa-unlock');
-            ticketLock.classList.add('fa-lock');  
+            ticketLock.classList.add('fa-lock');
             ticketTaskArea.setAttribute('contenteditable','false');
-
         }
+        ticketArr[ticketIdx].task = ticketTaskArea.innerText;
+        localStorage.setItem('tickets',JSON.stringify(ticketArr));
     })
+
+}
+
+function getTicketIdx(id){
+    let TicketIdx = ticketArr.findIndex(function(ticketObj){
+        return ticketObj.id == id;
+    })
+    return TicketIdx;
 }
